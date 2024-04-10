@@ -3,19 +3,15 @@ const puppeteer = require('puppeteer');
 const app = express();
 const port = 3000;
 
-app.get('/gerar-pdf/', async (req, res) => {
+app.get('/gerar-pdf/:nome', async (req, res) => {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
 
-   //var id= req.params.id;   :id:nome:link
-   //var nome= req.params.nome; 
-   //var link = req.params.link; 
+    var nome = req.params.nome;
 
-    
+    await page.goto('http://localhost/jvaz/pdfs/' + nome, {waitUntil: 'networkidle2'});
 
-    await page.goto('http://localhost/jvaz/htmls-teste/ger.html', {waitUntil: 'networkidle2'});
-
-    const path = 'teste.pdf'; 
+    const path = 'pdfs/' + nome + '.pdf';
 
     await page.pdf({path: path, format: 'A4'});
 
