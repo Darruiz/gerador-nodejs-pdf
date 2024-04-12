@@ -12,7 +12,7 @@ async function startBrowser() {
     if (browser) {
         console.log("Fechando o navegador existente.");
         await browser.close();
-    }  
+    }
     console.log("Lançando novo navegador.");
     browser = await puppeteer.launch({
         executablePath: '/usr/bin/google-chrome',
@@ -37,33 +37,45 @@ app.use((req, res, next) => {
 });
 
 app.get('/servers/pdf/gerar-pdf/:nome', async (req, res) => {
-    console.log("Generating PDF for:", req.params.nome);
+    console.log("Generating PDF para:", req.params.nome);
     if (!browser) {
         await startBrowser();
     }
 
     const page = await browser.newPage();
-    await page.setDefaultNavigationTimeout(0); 
-    await page.setDefaultTimeout(0); 
+    await page.setDefaultNavigationTimeout(0);
+    await page.setDefaultTimeout(0);
 
     const nome = req.params.nome.split('.')[0];
-    const url = `https://jvaz.leap.dev.br/_pdf/${nome}.html`;
+    const url = `dominiocaminhodiretorio/${nome}.html`;
+
+    let seconds = 0;
+    const timerId = setInterval(() => {
+        seconds++;
+        let minutos = Math.floor(seconds / 60);
+        let remainderSeconds = seconds % 60;
+        let timeString = `${minutos > 0 ? `${minutos}m ` : ''}${remainderSeconds}s`;
+        console.log(`Tempo de geração do PDF: ${timeString}`);
+    }, 1000);
 
     try {
         await page.goto(url, { waitUntil: 'networkidle2' });
         const filePath = path.join(__dirname, 'pdfs', `${nome}.pdf`);
         await page.pdf({ path: filePath, format: 'A4' });
         await page.close();
+        clearInterval(timerId);
         res.send("PDF gerado com sucesso.");
     } catch (error) {
         console.error('Erro ao gerar o PDF:', error);
         await page.close();
+        clearInterval(timerId);
         if (!browser.isConnected()) {
             await startBrowser();
         }
         res.status(500).send('Erro ao gerar o PDF');
     }
 });
+
 
 app.get('/servers/pdf/download-pdf/:nome', (req, res) => {
     const nome = req.params.nome;
@@ -80,7 +92,7 @@ app.get('/servers/pdf/download-pdf/:nome', (req, res) => {
     });	
 });
 
-cron.schedule('0 0 3 * * *', () => {
+cron.schedule('0 0 0 * * *', () => {
     console.log('Executando tarefa para excluir todos os arquivos PDF à meia-noite, horário de Brasília.');
     const directory = path.join(__dirname, 'pdfs');
 
