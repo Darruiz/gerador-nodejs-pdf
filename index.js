@@ -4,6 +4,7 @@ const app = express();
 const path = require('path');
 const fs = require('fs');
 const cron = require('node-cron');
+const axios = require('axios');
 const port = 3000;
 
 let browser;
@@ -24,7 +25,7 @@ async function startBrowser() {
             '--no-zygote'
         ],
         headless: true,
-        timeout: 0
+        timeout: 30000
     });
 }
 
@@ -47,7 +48,7 @@ app.get('/servers/pdf/gerar-pdf/:nome', async (req, res) => {
     await page.setDefaultTimeout(0);
 
     const nome = req.params.nome.split('.')[0];
-    const url = `dominiocaminhodiretorio/${nome}.html`;
+    const url = `https://#/_pdf/${nome}.html`;
 
     let seconds = 0;
     const timerId = setInterval(() => {
@@ -77,20 +78,20 @@ app.get('/servers/pdf/gerar-pdf/:nome', async (req, res) => {
 });
 
 
-app.get('/servers/pdf/download-pdf/:nome', (req, res) => {
+app.get('/servers/pdf/download-pdf/:nome', async (req, res) => {
     const nome = req.params.nome;
-    const pdfPath = path.join(__dirname, 'pdfs', nome);
-    
-    fs.exists(pdfPath, exists => {
-        if (exists) {
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename="${nome}"`);
-            res.sendFile(pdfPath);
-        } else {
-            res.status(404).send('Arquivo PDF não encontrado.');
-        }
-    });	
+    const prefixo = nome.split('.')[0];
+    const phpUrl = `http://#/index.php?arquivos=${prefixo}`;
+
+    try {
+        res.redirect(phpUrl);
+    } catch (error) {
+        console.error('Erro ao redirecionar para o PHP:', error);
+        res.status(500).send('Erro ao redirecionar para o PHP.');
+    }
 });
+
+
 
 cron.schedule('0 0 0 * * *', () => {
     console.log('Executando tarefa para excluir todos os arquivos PDF à meia-noite, horário de Brasília.');
@@ -113,5 +114,5 @@ cron.schedule('0 0 0 * * *', () => {
 });
 
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`Servidor rodando na porta: ${port}`);
 });
